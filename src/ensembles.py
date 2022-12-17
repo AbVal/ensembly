@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from scipy.optimize import minimize_scalar
 from sklearn.tree import DecisionTreeRegressor
@@ -43,6 +44,8 @@ class RandomForestMSE:
 
         y_val : numpy ndarray
             Array of size n_val_objects
+
+        returns: None or dict if X_val and y_val are not None
         """
         np.random.seed(self.random_state)
 
@@ -50,6 +53,10 @@ class RandomForestMSE:
             self.feature_subsample_size = X.shape[1] // 3
         elif isinstance(self.feature_subsample_size, float):
             self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
+
+        if X_val is not None and y_val is not None:
+            history = {'predict': [], 'rmse': [], 'time': []}
+            start_time = time.time()
 
         for _ in range(self.n_estimators):
             bag = np.random.choice(X.shape[0], X.shape[0], replace=True)
@@ -60,6 +67,13 @@ class RandomForestMSE:
 
             self.tree_list.append(tree)
             self.feature_subset_list.append(feature)
+
+            if history is not None:
+                history['predict'].append(tree.predict(X_val))
+                history['rmse'].append(mean_squared_error(y_val, np.mean(history['predict'])))
+                history['time'].append(time.time() - start_time)
+
+        return history
 
     def predict(self, X):
         """
@@ -129,6 +143,10 @@ class GradientBoostingMSE:
         elif isinstance(self.feature_subsample_size, float):
             self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
 
+        if X_val is not None and y_val is not None:
+            history = {'rmse': [], 'time': []}
+            start_time = time.time()
+
         y_pred = np.zeros_like(y)
 
         for _ in range(self.n_estimators):
@@ -146,6 +164,12 @@ class GradientBoostingMSE:
             self.feature_subset_list.append(feature)
 
             y_pred = y_pred + alpha * self.learning_rate * tree_pred
+
+            if history is not None:
+                history['rmse'].append(mean_squared_error(y_val, y_pred))
+                history['time'].append(time.time() - start_time)
+
+        return history
 
     def predict(self, X):
         """
