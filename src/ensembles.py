@@ -54,23 +54,22 @@ class RandomForestMSE:
         elif isinstance(self.feature_subsample_size, float):
             self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
 
-        if X_val is not None and y_val is not None:
-            history = {'predict': [], 'rmse': [], 'time': []}
-            start_time = time.time()
+        history = {'predict': [], 'rmse': [], 'time': []}
+        start_time = time.time()
 
         for _ in range(self.n_estimators):
             bag = np.random.choice(X.shape[0], X.shape[0], replace=True)
             feature = np.random.choice(X.shape[1], self.feature_subsample_size, replace=False)
 
             tree = DecisionTreeRegressor(max_depth=self.max_depth, random_state=self.random_state)
-            tree.fit(X[bag, feature], y[bag])
+            tree.fit(X[bag][:, feature], y[bag])
 
             self.tree_list.append(tree)
             self.feature_subset_list.append(feature)
 
-            if history is not None:
-                history['predict'].append(tree.predict(X_val))
-                history['rmse'].append(mean_squared_error(y_val, np.mean(history['predict'])))
+            if X_val is not None and y_val is not None:
+                history['predict'].append(tree.predict(X_val[:, feature]))
+                history['rmse'].append(mean_squared_error(y_val, np.mean(history['predict'], axis=0), squared=False))
                 history['time'].append(time.time() - start_time)
 
         return history
@@ -143,9 +142,8 @@ class GradientBoostingMSE:
         elif isinstance(self.feature_subsample_size, float):
             self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
 
-        if X_val is not None and y_val is not None:
-            history = {'rmse': [], 'time': []}
-            start_time = time.time()
+        history = {'rmse': [], 'time': [], 'predict': []}
+        start_time = time.time()
 
         y_pred = np.zeros_like(y)
 
@@ -155,7 +153,7 @@ class GradientBoostingMSE:
 
             tree = DecisionTreeRegressor(max_depth=self.max_depth, random_state=self.random_state)
             tree.fit(X[:, feature], antigrad)
-            tree_pred = tree.predict(X)
+            tree_pred = tree.predict(X[:, feature])
 
             alpha = minimize_scalar(lambda x, tp=tree_pred: mean_squared_error(y, y_pred + x * tp)).x
 
@@ -165,8 +163,9 @@ class GradientBoostingMSE:
 
             y_pred = y_pred + alpha * self.learning_rate * tree_pred
 
-            if history is not None:
-                history['rmse'].append(mean_squared_error(y_val, y_pred))
+            if X_val is not None and y_val is not None:
+                history['predict'].append(alpha * self.learning_rate * tree.predict(X_val[:, feature]))
+                history['rmse'].append(mean_squared_error(y_val, np.sum(history['predict'], axis=0), squared=False))
                 history['time'].append(time.time() - start_time)
 
         return history
