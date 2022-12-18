@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML модель</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 100%;
+        font-family: Arial;
+      }
+
+      /* Create two unequal columns that floats next to each other */
+      .column {
+        float: left;
+        padding: 10px;
+      }
+
+      .left {
+        width: 50%;
+      }
+
+      .right {
+        width: 50%;
+      }
+
+      /* Clear floats after the columns */
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .input-label {
+        display: block;
+      }
+      img {
+        float: center;
+        width:  30%;
+        height: 30%;
+        object-fit: cover;
+      }
+    </style>
+</head>
+
+<body>
+  <h2>Two Unequal Columns</h2>
+  <div class="row">
+    <div class="column left" style="background-color:#fff;">
+      <center>
+        <img src="{{url_for('static', filename='pic/smile.png')}}">
+        <p>Random Forest</p>
+      </center>
+    </div>
+    <div class="column right" style="background-color:#fff;">
+      <center>
+        <img src="{{url_for('static', filename='pic/garfield.jpg')}}">
+        <p>Gradient Boosting</p>
+      </center>
+    </div>
+  </div>
+  <div class="row">
+    <div style="text-align: center;">
+      <div style="display: inline-block; text-align: left;">
+        <form action="http://localhost:5000/uploader" method="POST" enctype="multipart/form-data">
+          <div class="input-label">
+            <label>Количество деревьев: </label>
+            <input name="n_estimators">
+          </div>
+          <div class="input-label">
+            <label>Доля признаков: </label>
+            <input name="feature_scale">
+          </div>
+          <div class="input-label">
+            <label>Максимальная глубина деревьев: </label>
+            <input name="max_depth">
+          </div>
+          <div class="input-label">
+            <label>Темп обучения: </label>
+            <input name="learning_rate">
+          </div>
+          <div class="input-label">
+            <label>Обучающая выборка: </label>
+            <input type="file" name="train" />
+          </div>
+          <div class="input-label">
+            <label>Валидационная выборка: </label>
+            <input type="file" name="valid" />
+          </div>
+          <div class="input-label">
+            <input type="submit">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+</html>
