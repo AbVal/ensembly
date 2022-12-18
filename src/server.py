@@ -1,32 +1,115 @@
-from flask import Flask, render_template, request
+import uuid
 import numpy as np
 import pandas as pd
-from ensembles import RandomForestMSE, GradientBoostingMSE
 import plotly.express as px
-import plotly.graph_objects as go
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request, redirect, url_for
+from ensembles import RandomForestMSE, GradientBoostingMSE
+
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
+
+@app.route('/', methods=['GET', 'POST'])
 def start_page():
     return render_template('index.html')
 
 
-@app.route('/uploader', methods = ['GET', 'POST'])
+@app.route('/train', methods=['GET', 'POST'])
 def upload_file():
-   if request.method == 'POST':
+    if request.method == 'POST':
         train = request.files['train']
         valid = request.files['valid']
-        print(train)
-        print(valid)
-        n_estimators = request.form['n_estimators']
-        feat = request.form['feature_scale']
-        max_depth = request.form['max_depth']
-        learning_rate = request.form['learning_rate']
 
-        print(n_estimators, feat, max_depth, learning_rate)
-        return render_template('index.html')
+        model_name = request.form['model']
+
+        try:
+            n_estimators = int(request.form['n_estimators'])
+
+            feat = float(request.form['feature_scale'])
+
+            max_depth = request.form['max_depth']
+            if max_depth == '':
+                max_depth = None
+            else:
+                max_depth = int(request.form['max_depth'])
+
+            learning_rate = request.form['learning_rate']
+            if learning_rate == '':
+                if model_name == 'GB':
+                    return redirect(url_for('start_page'))
+                learning_rate = 1
+            else:
+                learning_rate = float(learning_rate)
+        except:
+            return redirect(url_for('start_page'))
+
+        if n_estimators <= 0:
+            return redirect(url_for('start_page'))
+        if feat <= 0 or feat > 1:
+            return redirect(url_for('start_page'))
+        if max_depth is not None and max_depth <= 0:
+            return redirect(url_for('start_page'))
+
+        # return render_template('pd_df.html',  tables=[df.to_html(classes='data')], titles=df.columns.values)
+        model, hist = train_model(model_name, n_estimators, feat, max_depth, learning_rate, train, valid)
+
+        random_string = uuid.uuid4().hex
+        path = "static/temp/" + random_string + ".svg"
+
+        make_picture(hist, path)
+
+        return render_template('predict.html', href=path,
+                               n_estimators=model.n_estimators,
+                               feature_scale=model.feature_subsample_size,
+                               max_depth=model.max_depth,
+                               learning_rate=learning_rate,
+                               model_name=model_name)
+    return redirect(url_for('start_page'))
+
+
+def train_model(model_name, n_estimators, feat, max_depth, learning_rate, train, valid):
+    X_train = pd.read_csv(train)
+    y_train = X_train.price.to_numpy()
+    X_train = X_train.drop('price', axis=1)
+    X_train = X_train.drop(X_train.columns.values[X_train.dtypes == 'object'], axis=1).to_numpy()
+
+    X_valid = y_valid = None
+    if valid is not None:
+        X_valid = pd.read_csv(valid)
+        y_valid = X_valid.price.to_numpy()
+        X_valid = X_valid.drop('price', axis=1)
+        X_valid = X_valid.drop(X_valid.columns.values[X_valid.dtypes == 'object'], axis=1).to_numpy()
+
+    if model_name == 'RF':
+        model = RandomForestMSE(n_estimators=n_estimators,
+                                max_depth=max_depth,
+                                feature_subsample_size=feat)
+
+    # learning_rate exception
+    if model_name == 'GB':
+        model = GradientBoostingMSE(n_estimators=n_estimators,
+                                    max_depth=max_depth,
+                                    feature_subsample_size=feat,
+                                    learning_rate=learning_rate)
+
+    hist = model.fit(X_train, y_train, X_val=X_valid, y_val=y_valid)
+    return model, hist
+
+
+def make_picture(history, output_file):
+    n_estimators = np.arange(len(history['rmse_train']))
+    df_dict = {'Число деревьев': n_estimators,
+               'Валидационная выборка': history['rmse_val'],
+               'Обучающая выборка': history['rmse_train']}
+    df = pd.DataFrame(df_dict)
+    fig = px.line(df, x='Число деревьев',
+                  y=['Обучающая выборка', 'Валидационная выборка'],
+                  title="RMSE от количества деревьев",
+                  labels={'x': 'Число деревьев', 'value': 'RMSE'})
+
+    fig.write_image(output_file, width=800, engine='kaleido')
+    fig.show()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

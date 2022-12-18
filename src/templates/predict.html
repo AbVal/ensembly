@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML модель</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 100%;
+        font-family: Arial;
+      }
+
+      /* Create two unequal columns that floats next to each other */
+      .column {
+        float: left;
+        padding: 10px;
+      }
+
+      .left {
+        width: 50%;
+      }
+
+      .right {
+        width: 50%;
+      }
+
+      /* Clear floats after the columns */
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .input-label {
+        display: block;
+      }
+      /* HIDE RADIO */
+      [type=radio] { 
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      /* IMAGE STYLES */
+      [type=radio] + img {
+        cursor: pointer;
+      }
+
+      /* CHECKED STYLES */
+      [type=radio]:checked + img {
+        outline: 2px solid #0ff;
+      }
+    </style>
+</head>
+<body>
+  <center>
+    <img src="{{ href }}" height=600 />
+    <p>Параметры модели:</p>
+    <p>Количество деревьев: {{ n_estimators }}</p>
+    <p>Доля признаков: {{ feature_scale }}</p>
+    <p>Глубина деревьев: {% if max_depth is not none %}max_depth{% else %}не ограничена{% endif %}</p>
+    {% if model_name == 'GB' %}
+    <p>Темп обучения: {{ learning_rate }}</p>
+    {% endif %}
+    <form action="http://localhost:5000/predict" method="POST" enctype="multipart/form-data">
+      <label>Тестовая выборка: </label>
+      <input type="file" name="test"/>
+    </div>
+    <div class="input-label">
+      <input type="submit">
+    </div>
+    </form>
+  </center>
+</body>
+</html>

@@ -42,60 +42,84 @@
         height: 30%;
         object-fit: cover;
       }
+      /* HIDE RADIO */
+      [type=radio] { 
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      /* IMAGE STYLES */
+      [type=radio] + img {
+        cursor: pointer;
+      }
+
+      /* CHECKED STYLES */
+      [type=radio]:checked + img {
+        outline: 2px solid #0ff;
+      }
     </style>
 </head>
 
 <body>
-  <h2>Two Unequal Columns</h2>
-  <div class="row">
-    <div class="column left" style="background-color:#fff;">
-      <center>
-        <img src="{{url_for('static', filename='pic/smile.png')}}">
-        <p>Random Forest</p>
-      </center>
-    </div>
-    <div class="column right" style="background-color:#fff;">
-      <center>
-        <img src="{{url_for('static', filename='pic/garfield.jpg')}}">
-        <p>Gradient Boosting</p>
-      </center>
-    </div>
-  </div>
-  <div class="row">
-    <div style="text-align: center;">
-      <div style="display: inline-block; text-align: left;">
-        <form action="http://localhost:5000/uploader" method="POST" enctype="multipart/form-data">
-          <div class="input-label">
-            <label>Количество деревьев: </label>
-            <input name="n_estimators">
-          </div>
-          <div class="input-label">
-            <label>Доля признаков: </label>
-            <input name="feature_scale">
-          </div>
-          <div class="input-label">
-            <label>Максимальная глубина деревьев: </label>
-            <input name="max_depth">
-          </div>
-          <div class="input-label">
-            <label>Темп обучения: </label>
-            <input name="learning_rate">
-          </div>
-          <div class="input-label">
-            <label>Обучающая выборка: </label>
-            <input type="file" name="train" />
-          </div>
-          <div class="input-label">
-            <label>Валидационная выборка: </label>
-            <input type="file" name="valid" />
-          </div>
-          <div class="input-label">
-            <input type="submit">
-          </div>
-        </form>
+  <form action="http://localhost:5000/train" method="POST" enctype="multipart/form-data">
+    <center>
+      <h5>ML Модель</h5>
+    </center>
+    <div class="row">
+      <div class="column left" style="background-color:#fff;">
+        <center>
+          <label>
+            <input type="radio" name="model" value="RF">
+            <img src="{{url_for('static', filename='pic/wolves.jpeg')}}" alt="Wolves pic">
+          </label>
+          <p>Random Forest</p>
+        </center>
+      </div>
+      <div class="column right" style="background-color:#fff;">
+        <center>
+          <label>
+            <input type="radio" name="model" checked="checked" value="GB">
+            <img src="{{url_for('static', filename='pic/garfield.jpg')}}" alt="Garfield pic">
+          </label>
+          <p>Gradient Boosting</p>
+        </center>
       </div>
     </div>
-  </div>
+    <div class="row">
+      <div style="text-align: center;">
+        <div style="display: inline-block; text-align: left;">
+            <div class="input-label">
+              <label>Количество деревьев: </label>
+              <input name="n_estimators" value="200">
+            </div>
+            <div class="input-label">
+              <label>Доля признаков: </label>
+              <input name="feature_scale" value="0.33">
+            </div>
+            <div class="input-label">
+              <label>Максимальная глубина деревьев: </label>
+              <input name="max_depth">
+            </div>
+            <div class="input-label">
+              <label>Темп обучения: </label>
+              <input name="learning_rate" value="0.1">
+            </div>
+            <div class="input-label">
+              <label>Обучающая выборка: </label>
+              <input type="file" name="train" />
+            </div>
+            <div class="input-label">
+              <label>Валидационная выборка: </label>
+              <input type="file" name="valid" />
+            </div>
+            <div class="input-label">
+              <input type="submit">
+            </div>
+        </div>
+      </div>
+    </div>
+  </form>
 </body>
-</html>
 </html>
