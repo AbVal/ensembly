@@ -49,17 +49,18 @@ class RandomForestMSE:
         """
         np.random.seed(self.random_state)
 
+        self.tree_list = []
+        self.feature_subset_list = []
+
         if self.feature_subsample_size is None:
-            self.feature_subsample_size = X.shape[1] // 3
-        elif isinstance(self.feature_subsample_size, float):
-            self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
+            self.feature_subsample_size = 1 / 3
 
         history = {'predict': [], 'rmse': [], 'time': []}
         start_time = time.time()
 
         for _ in range(self.n_estimators):
             bag = np.random.choice(X.shape[0], X.shape[0], replace=True)
-            feature = np.random.choice(X.shape[1], self.feature_subsample_size, replace=False)
+            feature = np.random.choice(X.shape[1], int(X.shape[1] * self.feature_subsample_size), replace=False)
 
             tree = DecisionTreeRegressor(max_depth=self.max_depth, random_state=self.random_state)
             tree.fit(X[bag][:, feature], y[bag])
@@ -86,7 +87,7 @@ class RandomForestMSE:
         """
         tree_count = len(self.tree_list)
         if tree_count == 0:
-            raise RuntimeError('Unable to predict: no trees in forest')
+            raise RuntimeError('Unable to predict: model isn\'t fitted')
 
         prediction = np.zeros(X.shape[0])
 
@@ -137,10 +138,12 @@ class GradientBoostingMSE:
         """
         np.random.seed(self.random_state)
 
+        self.tree_list = []
+        self.alpha_list = []
+        self.feature_subset_list = []
+
         if self.feature_subsample_size is None:
-            self.feature_subsample_size = X.shape[1] // 3
-        elif isinstance(self.feature_subsample_size, float):
-            self.feature_subsample_size = int(X.shape[1] * self.feature_subsample_size)
+            self.feature_subsample_size = 1 / 3
 
         history = {'rmse': [], 'time': [], 'predict': []}
         start_time = time.time()
@@ -149,7 +152,7 @@ class GradientBoostingMSE:
 
         for _ in range(self.n_estimators):
             antigrad = 2 * (y - y_pred)
-            feature = np.random.choice(X.shape[1], self.feature_subsample_size, replace=False)
+            feature = np.random.choice(X.shape[1], int(X.shape[1] * self.feature_subsample_size), replace=False)
 
             tree = DecisionTreeRegressor(max_depth=self.max_depth, random_state=self.random_state)
             tree.fit(X[:, feature], antigrad)
@@ -180,6 +183,8 @@ class GradientBoostingMSE:
         y : numpy ndarray
             Array of size n_objects
         """
+        if len(self.tree_list) == 0:
+            raise RuntimeError('Unable to predict: model isn\'t fitted')
         prediction = np.zeros(X.shape[0])
 
         for tree, feature_subset, alpha in zip(self.tree_list, self.feature_subset_list, self.alpha_list):
