@@ -45,7 +45,8 @@ class RandomForestMSE:
         y_val : numpy ndarray
             Array of size n_val_objects
 
-        returns: None or dict if X_val and y_val are not None
+        returns: dict
+            Dictionary with time and rmse loss on iterations
         """
         np.random.seed(self.random_state)
 
@@ -55,10 +56,10 @@ class RandomForestMSE:
         if self.feature_subsample_size is None:
             self.feature_subsample_size = 1 / 3
 
-        history = {'predict': [], 'rmse': [], 'time': []}
+        history = {'predict_train': [0], 'predict_val': [0], 'rmse_train': [], 'rmse_val': [], 'time': []}
         start_time = time.time()
 
-        for _ in range(self.n_estimators):
+        for k in range(self.n_estimators):
             bag = np.random.choice(X.shape[0], X.shape[0], replace=True)
             feature = np.random.choice(X.shape[1], int(X.shape[1] * self.feature_subsample_size), replace=False)
 
@@ -68,10 +69,12 @@ class RandomForestMSE:
             self.tree_list.append(tree)
             self.feature_subset_list.append(feature)
 
+            history['predict_train'][0] = (history['predict_train'][0] * k + tree.predict(X[:, feature])) / (k + 1)
+            history['rmse_train'].append(mean_squared_error(y, history['predict_train'][0], squared=False))
+            history['time'].append(time.time() - start_time)
             if X_val is not None and y_val is not None:
-                history['predict'].append(tree.predict(X_val[:, feature]))
-                history['rmse'].append(mean_squared_error(y_val, np.mean(history['predict'], axis=0), squared=False))
-                history['time'].append(time.time() - start_time)
+                history['predict_val'][0] = (history['predict_val'][0] * k + tree.predict(X_val[:, feature])) / (k + 1)
+                history['rmse_val'].append(mean_squared_error(y_val, history['predict_val'][0], squared=False))
 
         return history
 
@@ -135,6 +138,9 @@ class GradientBoostingMSE:
 
         y : numpy ndarray
             Array of size n_objects
+
+        returns: dict
+            Dictionary with time and rmse loss on iterations
         """
         np.random.seed(self.random_state)
 
@@ -145,7 +151,7 @@ class GradientBoostingMSE:
         if self.feature_subsample_size is None:
             self.feature_subsample_size = 1 / 3
 
-        history = {'rmse': [], 'time': [], 'predict': []}
+        history = {'predict_val': [0], 'rmse_train': [], 'rmse_val': [], 'time': []}
         start_time = time.time()
 
         y_pred = np.zeros_like(y)
@@ -158,7 +164,7 @@ class GradientBoostingMSE:
             tree.fit(X[:, feature], antigrad)
             tree_pred = tree.predict(X[:, feature])
 
-            alpha = minimize_scalar(lambda x, tp=tree_pred: mean_squared_error(y, y_pred + x * tp)).x
+            alpha = minimize_scalar(lambda x, tp=tree_pred, yp=y_pred: mean_squared_error(y, yp + x * tp)).x
 
             self.tree_list.append(tree)
             self.alpha_list.append(alpha)
@@ -166,10 +172,11 @@ class GradientBoostingMSE:
 
             y_pred = y_pred + alpha * self.learning_rate * tree_pred
 
+            history['time'].append(time.time() - start_time)
+            history['rmse_train'].append(mean_squared_error(y, y_pred, squared=False))
             if X_val is not None and y_val is not None:
-                history['predict'].append(alpha * self.learning_rate * tree.predict(X_val[:, feature]))
-                history['rmse'].append(mean_squared_error(y_val, np.sum(history['predict'], axis=0), squared=False))
-                history['time'].append(time.time() - start_time)
+                history['predict_val'][0] += (alpha * self.learning_rate * tree.predict(X_val[:, feature]))
+                history['rmse_val'].append(mean_squared_error(y_val, history['predict_val'][0], squared=False))
 
         return history
 
