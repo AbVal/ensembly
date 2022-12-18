@@ -5,6 +5,10 @@ import plotly.express as px
 from flask import Flask, render_template, request, redirect, url_for
 from ensembles import RandomForestMSE, GradientBoostingMSE
 
+# TODO:
+# predictions
+# docstrings
+# css
 
 app = Flask(__name__)
 
@@ -15,10 +19,13 @@ def start_page():
 
 
 @app.route('/train', methods=['GET', 'POST'])
-def upload_file():
+def train():
     if request.method == 'POST':
         train = request.files['train']
         valid = request.files['valid']
+        showflag = request.form.get('show_graph')
+        if showflag is None:
+            showflag = False
 
         model_name = request.form['model']
 
@@ -50,13 +57,16 @@ def upload_file():
         if max_depth is not None and max_depth <= 0:
             return redirect(url_for('start_page'))
 
+
+        # TODO:
+        # dataframe view
         # return render_template('pd_df.html',  tables=[df.to_html(classes='data')], titles=df.columns.values)
         model, hist = train_model(model_name, n_estimators, feat, max_depth, learning_rate, train, valid)
 
         random_string = uuid.uuid4().hex
         path = "static/temp/" + random_string + ".svg"
 
-        make_picture(hist, path)
+        make_picture(hist, path, showflag)
 
         return render_template('predict.html', href=path,
                                n_estimators=model.n_estimators,
@@ -64,6 +74,15 @@ def upload_file():
                                max_depth=model.max_depth,
                                learning_rate=learning_rate,
                                model_name=model_name)
+    return redirect(url_for('start_page'))
+
+
+# TODO:
+# send arguments through url
+@app.route('/predict', methods=['GET', 'POST'])
+def predict():
+    if request.method == 'POST':
+        test = request.files['test']
     return redirect(url_for('start_page'))
 
 
@@ -96,7 +115,7 @@ def train_model(model_name, n_estimators, feat, max_depth, learning_rate, train,
     return model, hist
 
 
-def make_picture(history, output_file):
+def make_picture(history, output_file, showflag):
     n_estimators = np.arange(len(history['rmse_train']))
     df_dict = {'Число деревьев': n_estimators,
                'Валидационная выборка': history['rmse_val'],
@@ -106,10 +125,18 @@ def make_picture(history, output_file):
                   y=['Обучающая выборка', 'Валидационная выборка'],
                   title="RMSE от количества деревьев",
                   labels={'x': 'Число деревьев', 'value': 'RMSE'})
+    fig.update_layout(legend=dict(
+        title='',
+        yanchor='top',
+        y=1,
+        xanchor='right',
+        x=1
+    ))
 
     fig.write_image(output_file, width=800, engine='kaleido')
-    fig.show()
-
+    
+    if showflag:
+        fig.show()
 
 if __name__ == '__main__':
     app.run(debug=True)
