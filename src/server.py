@@ -57,11 +57,15 @@ def train():
         if max_depth is not None and max_depth <= 0:
             return redirect(url_for('start_page'))
 
-
+        # df = pd.read_csv(train)
         # TODO:
         # dataframe view
         # return render_template('pd_df.html',  tables=[df.to_html(classes='data')], titles=df.columns.values)
-        model, hist = train_model(model_name, n_estimators, feat, max_depth, learning_rate, train, valid)
+
+        X_train = pd.read_csv(train)
+        X_valid = pd.read_csv(valid)
+
+        model, hist = train_model(model_name, n_estimators, feat, max_depth, learning_rate, X_train, X_valid)
 
         random_string = uuid.uuid4().hex
         path = "static/temp/" + random_string + ".svg"
@@ -73,7 +77,10 @@ def train():
                                feature_scale=model.feature_subsample_size,
                                max_depth=model.max_depth,
                                learning_rate=learning_rate,
-                               model_name=model_name)
+                               model_name=model_name,
+                               tables=[X_train.sample(100).to_html(classes='Обучающая выборка')],
+                               titles=X_train.columns.values)
+
     return redirect(url_for('start_page'))
 
 
@@ -86,15 +93,12 @@ def predict():
     return redirect(url_for('start_page'))
 
 
-def train_model(model_name, n_estimators, feat, max_depth, learning_rate, train, valid):
-    X_train = pd.read_csv(train)
+def train_model(model_name, n_estimators, feat, max_depth, learning_rate, X_train, X_valid):
     y_train = X_train.price.to_numpy()
     X_train = X_train.drop('price', axis=1)
     X_train = X_train.drop(X_train.columns.values[X_train.dtypes == 'object'], axis=1).to_numpy()
 
-    X_valid = y_valid = None
-    if valid is not None:
-        X_valid = pd.read_csv(valid)
+    if X_valid is not None:
         y_valid = X_valid.price.to_numpy()
         X_valid = X_valid.drop('price', axis=1)
         X_valid = X_valid.drop(X_valid.columns.values[X_valid.dtypes == 'object'], axis=1).to_numpy()
@@ -117,14 +121,18 @@ def train_model(model_name, n_estimators, feat, max_depth, learning_rate, train,
 
 def make_picture(history, output_file, showflag):
     n_estimators = np.arange(len(history['rmse_train']))
+
     df_dict = {'Число деревьев': n_estimators,
                'Валидационная выборка': history['rmse_val'],
                'Обучающая выборка': history['rmse_train']}
+
     df = pd.DataFrame(df_dict)
+
     fig = px.line(df, x='Число деревьев',
                   y=['Обучающая выборка', 'Валидационная выборка'],
                   title="RMSE от количества деревьев",
                   labels={'x': 'Число деревьев', 'value': 'RMSE'})
+
     fig.update_layout(legend=dict(
         title='',
         yanchor='top',
@@ -134,7 +142,7 @@ def make_picture(history, output_file, showflag):
     ))
 
     fig.write_image(output_file, width=800, engine='kaleido')
-    
+
     if showflag:
         fig.show()
 
