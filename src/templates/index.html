@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML модель</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 100%;
+        font-family: Arial;
+      }
+
+      /* Create two unequal columns that floats next to each other */
+      .column {
+        float: left;
+        padding: 10px;
+      }
+
+      .left {
+        width: 50%;
+      }
+
+      .right {
+        width: 50%;
+      }
+
+      /* Clear floats after the columns */
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .input-label {
+        display: block;
+        text-align: right;
+        margin-top: 20px;
+      }
+      img {
+        float: center;
+        width:  30%;
+        height: 30%;
+        object-fit: cover;
+      }
+      /* HIDE RADIO */
+      [type=radio] { 
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      /* IMAGE STYLES */
+      [type=radio] + img {
+        cursor: pointer;
+      }
+
+      /* CHECKED STYLES */
+      [type=radio]:checked + img {
+        outline: 2px solid #0ff;
+      }
+    </style>
+</head>
+
+<body>
+  <form action="http://localhost:5000/train" method="POST" enctype="multipart/form-data">
+    <center>
+      <h5>ML Модель</h5>
+    </center>
+    <div class="row">
+      <div class="column left" style="background-color:#fff;">
+        <center>
+          <label>
+            <input type="radio" name="model" value="RF">
+            <img src="{{url_for('static', filename='pic/random_forest.png')}}" alt="Wolves pic">
+          </label>
+          <p>Random Forest</p>
+        </center>
+      </div>
+      <div class="column right" style="background-color:#fff;">
+        <center>
+          <label>
+            <input type="radio" name="model" checked="checked" value="GB">
+            <img src="{{url_for('static', filename='pic/gradient_boosting.jpg')}}" alt="Garfield pic">
+          </label>
+          <p>Gradient Boosting</p>
+        </center>
+      </div>
+    </div>
+    <div class="row">
+      <div style="text-align: center;">
+        {% for err in errors %}
+          <p style="text-align: center; color: red">{{ err }} </p>
+        {% endfor %}
+        <div style="display: inline-block; text-align: left;">
+            <div class="input-label">
+              <label>Количество деревьев: </label>
+              <input name="n_estimators" value="{% if n_estimators %}{{n_estimators}}{% else %}200{% endif %}">
+            </div>
+            <div class="input-label">
+              <label>Доля признаков: </label>
+              <input name="feature_scale" value="{% if feature_scale %}{{feature_scale}}{% else %}0.33{% endif %}">
+            </div>
+            <div class="input-label">
+              <label>Максимальная глубина деревьев: </label>
+              <input name="max_depth" value="{% if max_depth %}{{max_depth}}{% endif %}">
+            </div>
+            <div class="input-label">
+              <label>Темп обучения: </label>
+              <input name="learning_rate" value="{% if learning_rate %}{{learning_rate}}{% else %}0.1{% endif %}">
+            </div>
+            <div class="input-label">
+              <label>Обучающая выборка: </label>
+              <input type="file" name="train" />
+            </div>
+            <div class="input-label">
+              <label>Название таргета: </label>
+              <input name="target" value="{% if target %}{{target}}{% else %}price{% endif %}">
+            </div>
+            <div class="input-label">
+              <label>Валидационная выборка: </label>
+              <input type="file" name="valid" />
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+              <input type="submit" value="Обучить модель">
+            </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</body>
+</html>

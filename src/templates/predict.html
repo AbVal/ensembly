@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML модель</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 100%;
+        font-family: Arial;
+      }
+
+      /* Create two unequal columns that floats next to each other */
+      .column {
+        float: left;
+        padding: 10px;
+      }
+
+      .left {
+        width: 50%;
+      }
+
+      .right {
+        width: 50%;
+      }
+
+      /* Clear floats after the columns */
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .input-label {
+        display: block;
+        text-align: right;
+        margin-top: 20px;
+      }
+
+      table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        height: 40px;
+        border: 1px solid #ddd;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 8px;
+      }
+
+      tr:nth-child(even){background-color: #f2f2f2}
+    </style>
+</head>
+<body>
+  <center>
+    <div class="row">
+      <div class="column left" style="background-color:#fff;">
+        <center>
+          <label>
+            {{ graph|safe }}
+          </label>
+        </center>
+      </div>
+      <div class="column right" style="background-color:#fff;">
+          <p style="padding-top: 30px; ">Обучающая выборка</p>
+          <div style="overflow-x:auto; overflow-y:scroll; padding-bottom: 30px; height: 450px">
+          {% for table in tables %}
+              {{ table|safe }}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div style="text-align: center;">
+        <div style="display: inline-block; text-align: left;"> 
+          <p>Параметры модели:</p>
+          <p>Количество деревьев: {{ n_estimators }}</p>
+          <p>Доля признаков: {{ feature_scale }}</p>
+          <p>Глубина деревьев: {% if max_depth is not none %}max_depth{% else %}не ограничена{% endif %}</p>
+          {% if model_name == 'GB' %}
+          <p>Темп обучения: {{ learning_rate }}</p>
+          {% endif %}
+          <form action="http://localhost:5000/predict" method="POST" enctype="multipart/form-data">
+            <div class="input-label">
+              <label>Тестовая выборка: </label>
+              <input type="file" name="test"/>
+            </div>
+            <div class="input-label">
+              <label>Отображать предсказания со всей таблицей: </label>
+              <input type="radio" name="display_df" value="yes"/>
+              <label> Да </label>
+              <input type="radio" name="display_df" value="no" checked="checked"/>
+              <label> Нет </label>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+              <input type="submit", value="Предсказать значения">
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </center>
+</body>
+</html>

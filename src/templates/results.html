@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML модель</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 100%;
+        font-family: Arial;
+      }
+
+      /* Create two unequal columns that floats next to each other */
+      .column {
+        float: left;
+        padding: 10px;
+      }
+
+      .left {
+        width: 50%;
+      }
+
+      .right {
+        width: 50%;
+      }
+
+      /* Clear floats after the columns */
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .input-label {
+        display: block;
+      }
+
+      table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        height: 40px;
+        border: 1px solid #ddd;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 8px;
+      }
+
+      tr:nth-child(even){background-color: #f2f2f2}
+    </style>
+</head>
+<body>
+  <center>
+    <div class="row">
+      
+          <p style="padding-top: 30px; ">Предсказания</p>
+          <div style="overflow-x:auto; overflow-y:scroll; padding-bottom: 30px; height: 450px">
+          {% for table in tables %}
+              {{ table|safe }}
+          {% endfor %}
+          </div>
+    </div>
+    <div class="row">
+      <div style="text-align: center;">
+        <div style="display: inline-block; text-align: left;"> 
+          <form action="http://localhost:5000/" method="POST" enctype="multipart/form-data">
+              <div class="input-label">
+              <input type="submit" value="Вернуться к выбору модели">
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </center>
+</body>
+</html>
