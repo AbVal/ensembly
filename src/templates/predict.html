@@ -35,6 +35,8 @@
 
       .input-label {
         display: block;
+        text-align: right;
+        margin-top: 20px;
       }
 
       table {
@@ -89,13 +91,13 @@
             </div>
             <div class="input-label">
               <label>Отображать предсказания со всей таблицей: </label>
-              <input type="radio" name="display_df" value="yes" checked="checked"/>
+              <input type="radio" name="display_df" value="yes"/>
               <label> Да </label>
-              <input type="radio" name="display_df" value="no"/>
+              <input type="radio" name="display_df" value="no" checked="checked"/>
               <label> Нет </label>
             </div>
-            <div class="input-label">
-              <input type="submit">
+            <div style="text-align: center; margin-top: 20px;">
+              <input type="submit", value="Предсказать значения">
             </div>
           </form>
         </div>

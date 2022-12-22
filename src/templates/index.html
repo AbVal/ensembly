@@ -35,6 +35,8 @@
 
       .input-label {
         display: block;
+        text-align: right;
+        margin-top: 20px;
       }
       img {
         float: center;
@@ -90,6 +92,9 @@
     <div class="row">
       <div style="text-align: center;">
         <div style="display: inline-block; text-align: left;">
+          {% for err in errors %}
+            <p style="text-align: right; color: red">{{ err }} </p>
+          {% endfor %}
             <div class="input-label">
               <label>Количество деревьев: </label>
               <input name="n_estimators" value="200">
@@ -111,11 +116,15 @@
               <input type="file" name="train" />
             </div>
             <div class="input-label">
+              <label>Название таргета: </label>
+              <input name="target" value="price">
+            </div>
+            <div class="input-label">
               <label>Валидационная выборка: </label>
               <input type="file" name="valid" />
             </div>
-            <div class="input-label">
-              <input type="submit">
+            <div style="text-align: center; margin-top: 20px;">
+              <input type="submit" value="Обучить модель">
             </div>
         </div>
       </div>

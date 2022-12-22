@@ -26,39 +26,39 @@ def train():
         valid = request.files['valid']
 
         model_name = request.form['model']
+        target = request.form['target']
 
-        try:
-            n_estimators = int(request.form['n_estimators'])
+        n_estimators, feature_scale, max_depth, learning_rate, parse_errors = parse_params(request.form['n_estimators'],
+                                                                            request.form['feature_scale'],
+                                                                            request.form['max_depth'],
+                                                                            request.form['learning_rate'],
+                                                                            model_name)
 
-            feat = float(request.form['feature_scale'])
+        if len(parse_errors) > 0:
+            return render_template('index.html', errors=parse_errors)
 
-            max_depth = request.form['max_depth']
-            if max_depth == '':
-                max_depth = None
-            else:
-                max_depth = int(request.form['max_depth'])
+        X_train, X_val, df_errors = read_dataframes(train, valid, target)
 
-            learning_rate = request.form['learning_rate']
-            if learning_rate == '':
-                if model_name == 'GB':
-                    return redirect(url_for('start_page'))
-                learning_rate = 1
-            else:
-                learning_rate = float(learning_rate)
-        except:
-            return redirect(url_for('start_page'))
+        if len(df_errors) > 0:
+            return render_template('index.html', errors=df_errors)
 
-        if n_estimators <= 0:
-            return redirect(url_for('start_page'))
-        if feat <= 0 or feat > 1:
-            return redirect(url_for('start_page'))
-        if max_depth is not None and max_depth <= 0:
-            return redirect(url_for('start_page'))
 
-        X_train = pd.read_csv(train)
-        X_valid = pd.read_csv(valid)
+        X_train, y_train = process_dataframe(X_train, target)
 
-        model, hist = train_model(model_name, n_estimators, feat, max_depth, learning_rate, X_train, X_valid)
+        X_val, y_val = process_dataframe(X_val, target)
+        if X_val is not None:
+            X_val = X_val.to_numpy()
+            y_val = y_val.to_numpy()
+
+        model, hist = train_model(model_name,
+                                  n_estimators,
+                                  feature_scale,
+                                  max_depth,
+                                  learning_rate,
+                                  X_train.to_numpy(),
+                                  y_train.to_numpy(),
+                                  X_val,
+                                  y_val)
 
         buffer = io.StringIO()
         fig = make_picture(hist)
@@ -83,10 +83,17 @@ def predict():
     global model
     if request.method == 'POST':
         test = request.files['test']
-        X_test = pd.read_csv(test)
-        X_test_numpy = X_test.drop(X_test.columns.values[X_test.dtypes == 'object'], axis=1).to_numpy()
+        errors = []
+        try:
+            X_test = pd.read_csv(test)
+            X_test, y_test = process_dataframe(X_test)
+        except pd.errors.EmptyDataError:
+            X_test = None
+            errors.append('Отсутствует выборка')
+        except Exception as err:
+            errors.append(f'Ошибка {err}, {type(err)}')
 
-        y_pred = model.predict(X_test_numpy)
+        y_pred = model.predict(X_test.to_numpy())
 
         display_df = request.form['display_df']
 
@@ -97,7 +104,7 @@ def predict():
                                    tables=[X_test.to_html(classes='Загруженная выборка')],
                                    titles=X_test.columns.values)
 
-        pred_df = pd.DataFrame(y_pred, columns=['prediction'])
+        pred_df = pd.DataFrame(y_pred, columns=['prediction']).round(0)
         return render_template('results.html',
                                tables=[pred_df.to_html(classes='Загруженная выборка')],
                                titles=pred_df.columns.values)
@@ -105,29 +112,112 @@ def predict():
     return redirect(url_for('start_page'))
 
 
-def train_model(model_name, n_estimators, feat, max_depth, learning_rate, X_train, X_valid):
-    y_train = X_train.price.to_numpy()
-    X_train = X_train.drop('price', axis=1)
-    X_train = X_train.drop(X_train.columns.values[X_train.dtypes == 'object'], axis=1).to_numpy()
+def parse_params(n_estimators, feature_scale, max_depth, learning_rate, model_name):
+    errors = []
+    try:
+        n_estimators = int(n_estimators)
+        if n_estimators <= 0:
+            raise ValueError
+    except ValueError:
+        errors.append('Некорректное количество деревьев')
 
-    if X_valid is not None:
-        y_valid = X_valid.price.to_numpy()
-        X_valid = X_valid.drop('price', axis=1)
-        X_valid = X_valid.drop(X_valid.columns.values[X_valid.dtypes == 'object'], axis=1).to_numpy()
+    try:
+        feature_scale = float(feature_scale)
+        if feature_scale <= 0 or feature_scale > 1:
+            raise ValueError
+    except ValueError:
+        errors.append('Некорректная доля признаков')
 
+    try:
+        if max_depth == '':
+            max_depth = None
+        else:
+            max_depth = int(max_depth)
+            if max_depth <= 0:
+                raise ValueError
+    except ValueError:
+        errors.append('Некорректная глубина')
+        
+    try:
+        if learning_rate == '':
+            if model_name == 'GB':
+                errors.append('Отсутствует темп обучения (выбран градиентный бустинг)')
+            learning_rate = 1
+        else:
+            learning_rate = float(learning_rate)
+            if learning_rate <= 0:
+                raise ValueError
+    except ValueError:
+        errors.append('Некорректный темп обучения')
+
+    return n_estimators, feature_scale, max_depth, learning_rate, errors
+
+
+def read_dataframes(train_path, valid_path, target):
+    errors = []
+    try:
+        X_train = pd.read_csv(train_path)
+    except pd.errors.EmptyDataError:
+        X_train = None
+        errors.append('Отсутствует обучающая выборка')
+    except Exception as err:
+        errors.append(f'Ошибка {err}, {type(err)}')
+
+    try:
+        X_val = pd.read_csv(valid_path)
+    except pd.errors.EmptyDataError:
+        X_val = None
+    except Exception as err:
+        errors.append(f'Ошибка {err}, {type(err)}')
+
+    if target not in X_train.columns:
+        errors.append('Таргета нет в обучающей выборке')
+
+    if X_val is not None:
+        if target not in X_val.columns:
+            errors.append('Таргета нет в валидационной выборке')
+
+        for col in X_train.columns:
+            if col not in X_val.columns:
+                errors.append('Различные признаки обучающей и валидационной выборки')
+
+    return X_train, X_val, errors
+
+
+def process_dataframe(df, target=None):
+    if df is None:
+        return None, None
+    
+    y = None
+    if target is not None:
+        y = df[target]
+        X = df.drop(target, axis=1)
+
+    if 'date' in df.columns:
+        date = pd.to_datetime(X['date'])
+        X['day'] = date.dt.day
+        X['month'] = date.dt.month
+        X['year'] = date.dt.year
+        X = X.drop('date', axis=1)
+
+    X = X.drop(X.columns.values[X.dtypes == 'object'], axis=1)
+    return X, y
+
+
+def train_model(model_name, n_estimators, feature_scale, max_depth, learning_rate, X_train, y_train, X_val, y_val):
     if model_name == 'RF':
         model = RandomForestMSE(n_estimators=n_estimators,
                                 max_depth=max_depth,
-                                feature_subsample_size=feat)
+                                feature_subsample_size=feature_scale)
 
     # learning_rate exception
     if model_name == 'GB':
         model = GradientBoostingMSE(n_estimators=n_estimators,
                                     max_depth=max_depth,
-                                    feature_subsample_size=feat,
+                                    feature_subsample_size=feature_scale,
                                     learning_rate=learning_rate)
 
-    hist = model.fit(X_train, y_train, X_val=X_valid, y_val=y_valid)
+    hist = model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
     return model, hist
 
 
@@ -135,13 +225,18 @@ def make_picture(history):
     n_estimators = np.arange(len(history['rmse_train']))
 
     df_dict = {'Число деревьев': n_estimators,
-               'Валидационная выборка': history['rmse_val'],
                'Обучающая выборка': history['rmse_train']}
+
+    y_labels = ['Обучающая выборка']
+
+    if len(history['rmse_val']) > 0:
+        df_dict['Валидационная выборка'] = history['rmse_val']
+        y_labels.append('Валидационная выборка')
 
     df = pd.DataFrame(df_dict)
 
     fig = px.line(df, x='Число деревьев',
-                  y=['Обучающая выборка', 'Валидационная выборка'],
+                  y=y_labels,
                   title="RMSE от количества деревьев",
                   labels={'x': 'Число деревьев', 'value': 'RMSE'}, height=600)
 
