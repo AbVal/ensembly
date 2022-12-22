@@ -5,9 +5,6 @@ import plotly.express as px
 from flask import Flask, render_template, request, redirect, url_for
 from ensembles import RandomForestMSE, GradientBoostingMSE
 
-# TODO:
-# docstrings
-# css
 
 app = Flask(__name__)
 model = None
@@ -28,11 +25,12 @@ def train():
         model_name = request.form['model']
         target = request.form['target']
 
-        n_estimators, feature_scale, max_depth, learning_rate, parse_errors = parse_params(request.form['n_estimators'],
-                                                                            request.form['feature_scale'],
-                                                                            request.form['max_depth'],
-                                                                            request.form['learning_rate'],
-                                                                            model_name)
+        p = parse_params(request.form['n_estimators'],
+                         request.form['feature_scale'],
+                         request.form['max_depth'],
+                         request.form['learning_rate'],
+                         model_name)
+        n_estimators, feature_scale, max_depth, learning_rate, parse_errors = p
 
         if len(parse_errors) > 0:
             return render_template('index.html',
@@ -53,7 +51,6 @@ def train():
                                    learning_rate=learning_rate,
                                    target=target,
                                    errors=df_errors)
-
 
         X_train, y_train = process_dataframe(X_train, target)
 
@@ -93,15 +90,14 @@ def train():
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
     global model
-    
+
     if request.method == 'POST':
         test = request.files['test']
         try:
             X_test = pd.read_csv(test)
-            X_test, y_test = process_dataframe(X_test)
+            X_test, _ = process_dataframe(X_test)
         except Exception as err:
             return render_template('no_test.html', err=err)
-
 
         y_pred = model.predict(X_test.to_numpy())
 
@@ -123,6 +119,21 @@ def predict():
 
 
 def parse_params(n_estimators, feature_scale, max_depth, learning_rate, model_name):
+    """
+    n_estimators : string
+    feature_scale : string
+    max_depth : string
+    learning_rate : string
+    model_name : string
+
+    Returns
+    -------
+    n_estimators : int
+    feature_scale : float
+    max_depth : int or None
+    learning_rate : float
+    errors : list
+    """
     errors = []
     try:
         n_estimators = int(n_estimators)
@@ -147,7 +158,7 @@ def parse_params(n_estimators, feature_scale, max_depth, learning_rate, model_na
                 raise ValueError
     except ValueError:
         errors.append('Некорректная глубина')
-        
+
     try:
         if learning_rate == '':
             if model_name == 'GB':
@@ -164,6 +175,17 @@ def parse_params(n_estimators, feature_scale, max_depth, learning_rate, model_na
 
 
 def read_dataframes(train_path, valid_path, target):
+    """
+    train_path : string
+    valid_path : string
+    target : string
+
+    Returns
+    -------
+    X_train : pandas DataFrame or None
+    X_val : pandas DataFrame or None
+    errors : list
+    """
     errors = []
     X_train, X_val = None, None
     try:
@@ -196,9 +218,18 @@ def read_dataframes(train_path, valid_path, target):
 
 
 def process_dataframe(df, target=None):
+    """
+    df : pandas DataFrame
+    target : string
+
+    Returns
+    -------
+    X : pandas DataFrame or None
+    y : pandas DataFrame or None
+    """
     if df is None:
         return None, None
-    
+
     y = None
 
     X = df
@@ -218,6 +249,22 @@ def process_dataframe(df, target=None):
 
 
 def train_model(model_name, n_estimators, feature_scale, max_depth, learning_rate, X_train, y_train, X_val, y_val):
+    """
+    model_name : string
+    n_estimators : int
+    feature_scale : float
+    max_depth : int
+    learning_rate : float
+    X_train : numpy ndarray
+    y_train : numpy ndarray
+    X_val : numpy ndarray
+    y_val : numpy ndarray
+
+    Returns
+    -------
+    X : pandas DataFrame or None
+    y : pandas DataFrame or None
+    """
     if model_name == 'RF':
         model = RandomForestMSE(n_estimators=n_estimators,
                                 max_depth=max_depth,
@@ -235,6 +282,13 @@ def train_model(model_name, n_estimators, feature_scale, max_depth, learning_rat
 
 
 def make_picture(history):
+    """
+    history : dict
+
+    Returns
+    -------
+    fig : plotly express figure
+    """
     n_estimators = np.arange(len(history['rmse_train']))
 
     df_dict = {'Число деревьев': n_estimators,
