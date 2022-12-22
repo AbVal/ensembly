@@ -35,12 +35,24 @@ def train():
                                                                             model_name)
 
         if len(parse_errors) > 0:
-            return render_template('index.html', errors=parse_errors)
+            return render_template('index.html',
+                                   n_estimators=n_estimators,
+                                   feature_scale=feature_scale,
+                                   max_depth=max_depth,
+                                   learning_rate=learning_rate,
+                                   target=target,
+                                   errors=parse_errors)
 
         X_train, X_val, df_errors = read_dataframes(train, valid, target)
 
         if len(df_errors) > 0:
-            return render_template('index.html', errors=df_errors)
+            return render_template('index.html',
+                                   n_estimators=n_estimators,
+                                   feature_scale=feature_scale,
+                                   max_depth=max_depth,
+                                   learning_rate=learning_rate,
+                                   target=target,
+                                   errors=df_errors)
 
 
         X_train, y_train = process_dataframe(X_train, target)
@@ -81,17 +93,15 @@ def train():
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
     global model
+    
     if request.method == 'POST':
         test = request.files['test']
-        errors = []
         try:
             X_test = pd.read_csv(test)
             X_test, y_test = process_dataframe(X_test)
-        except pd.errors.EmptyDataError:
-            X_test = None
-            errors.append('Отсутствует выборка')
         except Exception as err:
-            errors.append(f'Ошибка {err}, {type(err)}')
+            return render_template('no_test.html', err=err)
+
 
         y_pred = model.predict(X_test.to_numpy())
 
@@ -155,10 +165,10 @@ def parse_params(n_estimators, feature_scale, max_depth, learning_rate, model_na
 
 def read_dataframes(train_path, valid_path, target):
     errors = []
+    X_train, X_val = None, None
     try:
         X_train = pd.read_csv(train_path)
     except pd.errors.EmptyDataError:
-        X_train = None
         errors.append('Отсутствует обучающая выборка')
     except Exception as err:
         errors.append(f'Ошибка {err}, {type(err)}')
@@ -166,20 +176,21 @@ def read_dataframes(train_path, valid_path, target):
     try:
         X_val = pd.read_csv(valid_path)
     except pd.errors.EmptyDataError:
-        X_val = None
+        pass
     except Exception as err:
         errors.append(f'Ошибка {err}, {type(err)}')
 
-    if target not in X_train.columns:
+    if X_train is not None and target not in X_train.columns:
         errors.append('Таргета нет в обучающей выборке')
 
     if X_val is not None:
         if target not in X_val.columns:
             errors.append('Таргета нет в валидационной выборке')
 
-        for col in X_train.columns:
-            if col not in X_val.columns:
-                errors.append('Различные признаки обучающей и валидационной выборки')
+        if X_train is not None:
+            for col in X_train.columns:
+                if col not in X_val.columns:
+                    errors.append('Различные признаки обучающей и валидационной выборки')
 
     return X_train, X_val, errors
 
@@ -189,6 +200,8 @@ def process_dataframe(df, target=None):
         return None, None
     
     y = None
+
+    X = df
     if target is not None:
         y = df[target]
         X = df.drop(target, axis=1)

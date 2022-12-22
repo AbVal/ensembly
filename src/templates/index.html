@@ -91,25 +91,25 @@
     </div>
     <div class="row">
       <div style="text-align: center;">
+        {% for err in errors %}
+          <p style="text-align: center; color: red">{{ err }} </p>
+        {% endfor %}
         <div style="display: inline-block; text-align: left;">
-          {% for err in errors %}
-            <p style="text-align: right; color: red">{{ err }} </p>
-          {% endfor %}
             <div class="input-label">
               <label>Количество деревьев: </label>
-              <input name="n_estimators" value="200">
+              <input name="n_estimators" value="{% if n_estimators %}{{n_estimators}}{% else %}200{% endif %}">
             </div>
             <div class="input-label">
               <label>Доля признаков: </label>
-              <input name="feature_scale" value="0.33">
+              <input name="feature_scale" value="{% if feature_scale %}{{feature_scale}}{% else %}0.33{% endif %}">
             </div>
             <div class="input-label">
               <label>Максимальная глубина деревьев: </label>
-              <input name="max_depth">
+              <input name="max_depth" value="{% if max_depth %}{{max_depth}}{% endif %}">
             </div>
             <div class="input-label">
               <label>Темп обучения: </label>
-              <input name="learning_rate" value="0.1">
+              <input name="learning_rate" value="{% if learning_rate %}{{learning_rate}}{% else %}0.1{% endif %}">
             </div>
             <div class="input-label">
               <label>Обучающая выборка: </label>
@@ -117,7 +117,7 @@
             </div>
             <div class="input-label">
               <label>Название таргета: </label>
-              <input name="target" value="price">
+              <input name="target" value="{% if target %}{{target}}{% else %}price{% endif %}">
             </div>
             <div class="input-label">
               <label>Валидационная выборка: </label>
