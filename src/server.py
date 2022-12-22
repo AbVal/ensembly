@@ -11,7 +11,7 @@ model = None
 
 
 @app.route('/', methods=['GET', 'POST'])
-def start_page():
+def index():
     return render_template('index.html')
 
 

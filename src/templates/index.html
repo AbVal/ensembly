@@ -65,7 +65,7 @@
 </head>
 
 <body>
-  <form action="http://localhost:5000/train" method="POST" enctype="multipart/form-data">
+  <form action="{{ url_for('train') }}" method="POST" enctype="multipart/form-data">
     <center>
       <h5>ML Модель</h5>
     </center>
