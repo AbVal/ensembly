@@ -265,6 +265,7 @@ def train_model(model_name, n_estimators, feature_scale, max_depth, learning_rat
     X : pandas DataFrame or None
     y : pandas DataFrame or None
     """
+    global model
     if model_name == 'RF':
         model = RandomForestMSE(n_estimators=n_estimators,
                                 max_depth=max_depth,
