@@ -1,5 +1,4 @@
-*.ipynb
-*.csv
-*.pdf
+jupyter
 /venv
 __pycache__
+.ipynb_checkpoints
